@@ -5,18 +5,20 @@ import (
 	"time"
 )
 
+type Value interface{}
+
 type Future struct {
 	result chan *result
 }
 
 type result struct {
-	value interface{}
+	value Value
 	err   error
 }
 
 var ErrTimeout = errors.New("Timed out")
 
-func NewFuture(Func func() (interface{}, error)) *Future {
+func NewFuture(Func func() (Value, error)) *Future {
 	f := &Future{
 		result: make(chan *result),
 	}
@@ -28,15 +30,15 @@ func NewFuture(Func func() (interface{}, error)) *Future {
 	return f
 }
 
-func (f *Future) Get() (interface{}, error) {
-	ret := <-f.result
-	return ret.value, ret.err
+func (f *Future) Get() (Value, error) {
+	result := <-f.result
+	return result.value, result.err
 }
 
-func (f *Future) GetWithTimeout(timeout time.Duration) (interface{}, error) {
+func (f *Future) GetWithTimeout(timeout time.Duration) (Value, error) {
 	select {
-	case ret := <-f.result:
-		return ret.value, ret.err
+	case result := <-f.result:
+		return result.value, result.err
 	case <-time.After(timeout):
 		return nil, ErrTimeout
 	}

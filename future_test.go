@@ -9,7 +9,7 @@ import (
 )
 
 func TestFutureError(t *testing.T) {
-	f1 := NewFuture(func() (interface{}, error) {
+	f1 := NewFuture(func() (Value, error) {
 		time.Sleep(1 * time.Second)
 		return nil, errors.New("test error")
 	})
@@ -21,12 +21,12 @@ func TestFutureError(t *testing.T) {
 
 func TestFutureAsync(t *testing.T) {
 	start := time.Now()
-	f1 := NewFuture(func() (interface{}, error) {
+	f1 := NewFuture(func() (Value, error) {
 		time.Sleep(1 * time.Second)
 		return 42, nil
 	})
 
-	f2 := NewFuture(func() (interface{}, error) {
+	f2 := NewFuture(func() (Value, error) {
 		time.Sleep(1 * time.Second)
 		return 43, nil
 	})
@@ -43,7 +43,7 @@ func TestFutureAsync(t *testing.T) {
 
 func TestFutureWithTimeout(t *testing.T) {
 	start := time.Now()
-	f1 := NewFuture(func() (interface{}, error) {
+	f1 := NewFuture(func() (Value, error) {
 		time.Sleep(10 * time.Second)
 		return 42, nil
 	})
