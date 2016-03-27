@@ -7,7 +7,12 @@ import (
 
 type Value interface{}
 
-type Future struct {
+type Future interface {
+	Get() (Value, error)
+	GetWithTimeout(timeout time.Duration) (Value, error)
+}
+
+type futureResult struct {
 	result chan *result
 }
 
@@ -18,8 +23,12 @@ type result struct {
 
 var ErrTimeout = errors.New("Timed out")
 
-func NewFuture(Func func() (Value, error)) *Future {
-	f := &Future{
+func NewFuture(Func func() (Value, error)) Future {
+	return newFutureResult(Func)
+}
+
+func newFutureResult(Func func() (Value, error)) *futureResult {
+	f := &futureResult{
 		result: make(chan *result),
 	}
 	go func() {
@@ -30,12 +39,12 @@ func NewFuture(Func func() (Value, error)) *Future {
 	return f
 }
 
-func (f *Future) Get() (Value, error) {
+func (f *futureResult) Get() (Value, error) {
 	result := <-f.result
 	return result.value, result.err
 }
 
-func (f *Future) GetWithTimeout(timeout time.Duration) (Value, error) {
+func (f *futureResult) GetWithTimeout(timeout time.Duration) (Value, error) {
 	select {
 	case result := <-f.result:
 		return result.value, result.err

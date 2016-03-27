@@ -10,7 +10,7 @@ import (
 
 func TestPromise(t *testing.T) {
 	p := NewPromise(func() (Value, error) {
-		time.Sleep(1 * time.Second)
+		time.Sleep(100 * time.Millisecond)
 		return 42, nil
 	})
 	value, err := p.Get()
@@ -20,7 +20,7 @@ func TestPromise(t *testing.T) {
 
 func TestPromiseThen(t *testing.T) {
 	p := NewPromise(func() (Value, error) {
-		time.Sleep(1 * time.Second)
+		time.Sleep(100 * time.Millisecond)
 		return 42, nil
 	})
 	value, err := p.Then(func(value Value) (Value, error) {
@@ -33,11 +33,11 @@ func TestPromiseThen(t *testing.T) {
 
 func TestPromiseErrorThen(t *testing.T) {
 	p := NewPromise(func() (Value, error) {
-		time.Sleep(1 * time.Second)
+		time.Sleep(100 * time.Millisecond)
 		return nil, errors.New("error!")
 	})
 	value, err := p.Then(func(value Value) (Value, error) {
-		time.Sleep(1 * time.Second)
+		time.Sleep(100 * time.Millisecond)
 		return value.(int) + 3, nil
 	}).Get()
 	assert.Nil(t, value)
@@ -67,21 +67,21 @@ func TestPromiseChainDelay(t *testing.T) {
 	start := time.Now()
 
 	p1 := NewPromise(func() (Value, error) {
-		time.Sleep(1 * time.Second)
+		time.Sleep(100 * time.Millisecond)
 		return 42, nil
 	})
 
 	p2 := p1.Then(func(value Value) (Value, error) {
-		time.Sleep(1 * time.Second)
+		time.Sleep(100 * time.Millisecond)
 		return value.(int) + 3, nil
 	})
 
-	assert.InDelta(t, 0.0, time.Since(start).Seconds(), 0.1)
+	assert.InDelta(t, 0.0, time.Since(start).Seconds(), 0.01)
 
 	value, err := p2.Get()
 
 	assert.Equal(t, 45, value)
 	assert.NoError(t, err)
 
-	assert.InDelta(t, 2.0, time.Since(start).Seconds(), 0.1)
+	assert.InDelta(t, 0.2, time.Since(start).Seconds(), 0.05)
 }
