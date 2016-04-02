@@ -8,8 +8,9 @@
 package future
 
 import (
-	"errors"
 	"time"
+
+	"golang.org/x/net/context"
 )
 
 // Value type to allow returning arbitrary results.
@@ -22,12 +23,19 @@ type Future interface {
 	Get() (Value, error)
 	// Blocks on Future awaiting result, but returns a ErrTimeout if
 	// the timeout Duration is hit before result returns.
-	// Note that the execution still in Future after timeout.
+	// Note that the execution still continues in Future after timeout.
 	GetWithTimeout(timeout time.Duration) (Value, error)
+	// Blocks on Future awaiting result as well as provided Context.
+	// Execution continues in Future, even if Context hits deadline
+	// or is canceled.
+	GetWithContext(context.Context) (Value, error)
 }
 
-// Returned when
-var ErrTimeout = errors.New("Timed out")
+// Returned when a Future has timed out
+var ErrTimeout = context.DeadlineExceeded
+
+// Returned when a Future has be canceled
+var ErrCanceled = context.Canceled
 
 // Creates a new Future. Func is asynchronously called and it is
 // resolved with a Get or GetWithTimeout call on the Future.
@@ -57,15 +65,19 @@ func newFutureResult(Func func() (Value, error)) *futureResult {
 }
 
 func (f *futureResult) Get() (Value, error) {
-	result := <-f.result
-	return result.value, result.err
+	return f.GetWithContext(context.Background())
 }
 
 func (f *futureResult) GetWithTimeout(timeout time.Duration) (Value, error) {
+	ctx, _ := context.WithTimeout(context.Background(), timeout)
+	return f.GetWithContext(ctx)
+}
+
+func (f *futureResult) GetWithContext(ctx context.Context) (Value, error) {
 	select {
+	case <-ctx.Done():
+		return nil, ctx.Err()
 	case result := <-f.result:
 		return result.value, result.err
-	case <-time.After(timeout):
-		return nil, ErrTimeout
 	}
 }

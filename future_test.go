@@ -5,6 +5,8 @@ import (
 	"testing"
 	"time"
 
+	"golang.org/x/net/context"
+
 	"github.com/stretchr/testify/assert"
 )
 
@@ -43,12 +45,12 @@ func TestFutureAsync(t *testing.T) {
 
 func TestFutureWithTimeout(t *testing.T) {
 	start := time.Now()
-	f1 := NewFuture(func() (Value, error) {
+	f := NewFuture(func() (Value, error) {
 		time.Sleep(1 * time.Second)
 		return 42, nil
 	})
 
-	value, err := f1.GetWithTimeout(100 * time.Millisecond)
+	value, err := f.GetWithTimeout(100 * time.Millisecond)
 	assert.Error(t, err)
 	assert.Equal(t, ErrTimeout, err)
 	assert.Nil(t, value)
@@ -58,14 +60,53 @@ func TestFutureWithTimeout(t *testing.T) {
 
 func TestFutureWithTimeoutComplete(t *testing.T) {
 	start := time.Now()
-	f1 := NewFuture(func() (Value, error) {
+	f := NewFuture(func() (Value, error) {
 		time.Sleep(100 * time.Millisecond)
 		return 42, nil
 	})
 
-	value, err := f1.GetWithTimeout(1 * time.Second)
+	value, err := f.GetWithTimeout(1 * time.Second)
 	assert.Equal(t, 42, value)
 	assert.NoError(t, err)
 
 	assert.InDelta(t, 0.1, time.Since(start).Seconds(), 0.01)
+}
+
+func TestFutureWithContext(t *testing.T) {
+	f := NewFuture(func() (Value, error) {
+		time.Sleep(100 * time.Millisecond)
+		return 42, nil
+	})
+
+	ctx := context.Background()
+	value, err := f.GetWithContext(ctx)
+	assert.NoError(t, err)
+	assert.Equal(t, 42, value)
+}
+
+func TestFutureWithContextCancel(t *testing.T) {
+	f := NewFuture(func() (Value, error) {
+		time.Sleep(100 * time.Millisecond)
+		return 42, nil
+	})
+
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+	value, err := f.GetWithContext(ctx)
+	assert.Error(t, err)
+	assert.Equal(t, context.Canceled, err)
+	assert.Nil(t, value)
+}
+
+func TestFutureWithContextTimeout(t *testing.T) {
+	f := NewFuture(func() (Value, error) {
+		time.Sleep(100 * time.Millisecond)
+		return 42, nil
+	})
+
+	ctx, _ := context.WithTimeout(context.Background(), 10*time.Millisecond)
+	value, err := f.GetWithContext(ctx)
+	assert.Error(t, err)
+	assert.Equal(t, context.DeadlineExceeded, err)
+	assert.Nil(t, value)
 }
