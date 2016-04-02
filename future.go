@@ -69,7 +69,8 @@ func (f *futureResult) Get() (Value, error) {
 }
 
 func (f *futureResult) GetWithTimeout(timeout time.Duration) (Value, error) {
-	ctx, _ := context.WithTimeout(context.Background(), timeout)
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	defer cancel()
 	return f.GetWithContext(ctx)
 }
 
